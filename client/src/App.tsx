@@ -48,7 +48,7 @@ export default function App() {
           <Link to="/" className="brand">Kudan Memorial</Link>
           <div style={{ marginLeft: 'auto' }}>
             {loggedIn ? (
-              <button className="btn secondary" onClick={() => { clearToken(); location.href = '/'; }}>
+              <button className="btn secondary" onClick={() => { clearToken(); window.location.href = '/'; }}>
                 Log out
               </button>
             ) : (
