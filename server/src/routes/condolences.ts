@@ -8,6 +8,28 @@ import { requireAuth, requireRole, type AuthedRequest } from '../middleware/auth
 
 export const condolencesRouter = Router();
 
+// Recent verified condolences across the whole site, for the homepage rail.
+// Must be declared BEFORE /deceased/:id and /:id/... routes so Express does
+// not treat "recent" as an id.
+condolencesRouter.get('/recent', async (req, res) => {
+  const limit = Math.min(20, Math.max(1, Number(req.query.limit) || 5));
+
+  const items = await db.select({
+    id: condolences.id,
+    authorName: condolences.authorName,
+    message: condolences.message,
+    createdAt: condolences.createdAt,
+    deceasedId: condolences.deceasedId,
+    deceasedName: deceased.fullName,
+  }).from(condolences)
+    .innerJoin(deceased, eq(condolences.deceasedId, deceased.id))
+    .where(eq(condolences.status, 'verified'))
+    .orderBy(desc(condolences.createdAt))
+    .limit(limit);
+
+  res.json({ items });
+});
+
 // Public list of approved condolences for one person, paginated.
 // Newest first. Hard cap of 50 per page, no exceptions.
 condolencesRouter.get('/deceased/:id', async (req, res) => {
