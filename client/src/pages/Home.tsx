@@ -126,10 +126,9 @@ export default function Home() {
                 </div>
                 <div className="post-author-text">
                   <Link to={`/deceased/${p.id}`} className="post-name">{p.fullName}</Link>
-                  <div className="post-meta">
-                    {p.hausaName ? `${p.hausaName} . ` : ''}
-                    {p.ward} <div className="post-meta-divider">
-                      </div> died {longDate(p.dateOfDeath)}
+                                    <div className="post-meta">
+                    {p.hausaName ? `${p.hausaName} · ` : ''}
+                    {p.ward} · died {longDate(p.dateOfDeath)}
                   </div>
                   <div className="post-time">
                     Recorded {timeAgo(p.createdAt)}
