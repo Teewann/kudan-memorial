@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api, isLoggedIn } from '../lib/api';
+import ShareMenu from '../components/ShareMenu';
 
 interface Announcement {
   id: number;
@@ -10,6 +11,13 @@ interface Announcement {
   burialTime: string | null;
   burialPlace: string | null;
   createdAt: string;
+  expiresAt: string;
+}
+
+function longDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    year: 'numeric', month: 'long', day: 'numeric',
+  });
 }
 
 export default function AnnouncementDetail() {
@@ -50,31 +58,40 @@ export default function AnnouncementDetail() {
       <div className="card">
         <h1 style={{ marginBottom: 4 }}>{data.name}</h1>
         <div className="muted" style={{ marginBottom: 16 }}>
-          Died {new Date(data.dateOfDeath).toLocaleDateString()}
+          Died {longDate(data.dateOfDeath)}
         </div>
 
-        {data.burialPlace && (
-          <div className="detail-row">
-            <span className="label">Burial place</span>
-            <span>{data.burialPlace}</span>
-          </div>
-        )}
-        {data.burialTime && (
-          <div className="detail-row">
-            <span className="label">Burial time</span>
-            <span>{data.burialTime}</span>
-          </div>
-        )}
+        <div className="detail-block">
+          {data.burialPlace && (
+            <div className="detail-row">
+              <span className="label">Burial place</span>
+              <span>{data.burialPlace}</span>
+            </div>
+          )}
+          {data.burialTime && (
+            <div className="detail-row">
+              <span className="label">Burial time</span>
+              <span>{data.burialTime}</span>
+            </div>
+          )}
+        </div>
 
         {data.note && (
-          <p style={{ marginTop: 16, whiteSpace: 'pre-wrap' }}>{data.note}</p>
+          <p style={{ marginTop: '1.25rem', whiteSpace: 'pre-wrap' }}>{data.note}</p>
         )}
 
-        {loggedIn && (
-          <button className="btn danger" style={{ marginTop: 12 }} disabled={busy} onClick={remove}>
-            {busy ? 'Deleting...' : 'Delete announcement'}
-          </button>
-        )}
+        <div className="action-bar">
+          <ShareMenu
+            url={window.location.href}
+            title={data.name}
+            text={`Announcement for ${data.name}.`}
+          />
+          {loggedIn && (
+            <button className="btn danger" disabled={busy} onClick={remove}>
+              {busy ? 'Deleting...' : 'Delete announcement'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

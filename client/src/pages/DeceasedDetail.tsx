@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { api } from '../lib/api';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { api, isLoggedIn } from '../lib/api';
 import ImageViewer from '../components/ImageViewer';
+import Reactions from '../components/Reactions';
 import Condolences from '../components/Condolences';
+import ShareMenu from '../components/ShareMenu';
+
 interface Person {
   id: number; fullName: string; hausaName: string | null; ward: string;
   dateOfDeath: string; dateOfBirth: string | null; bio: string | null;
@@ -13,13 +16,19 @@ interface Family { id: number; name: string; }
 
 export default function DeceasedDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [data, setData] = useState<{ person: Person; family: Family | null } | null>(null);
   const [error, setError] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const canModerate = isLoggedIn();
 
   useEffect(() => {
     api<{ person: Person; family: Family | null }>(`/api/deceased/${id}`)
-      .then(setData)
+      .then((r) => {
+        setData(r);
+        api(`/api/analytics/view/${id}`, { method: 'POST' }).catch(() => {});
+      })
       .catch(() => setError(true));
   }, [id]);
 
@@ -27,8 +36,18 @@ export default function DeceasedDetail() {
   if (!data) return <div className="skeleton" />;
 
   const { person, family } = data;
-  const shareUrl = window.location.href;
-  const waText = encodeURIComponent(`In loving memory of ${person.fullName}. ${shareUrl}`);
+
+  async function onDelete() {
+    if (!confirm(`Delete the record for ${person.fullName}? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      await api(`/api/deceased/${person.id}`, { method: 'DELETE' });
+      navigate('/deceased');
+    } catch {
+      alert('Could not delete.');
+      setDeleting(false);
+    }
+  }
 
   return (
     <div>
@@ -55,7 +74,7 @@ export default function DeceasedDetail() {
           </div>
         </div>
 
-        <div style={{ marginTop: '1.25rem' }}>
+        <div className="detail-block">
           <div className="detail-row">
             <span className="label">Date of death</span>
             <span>{person.dateOfDeath}</span>
@@ -96,16 +115,30 @@ export default function DeceasedDetail() {
           <p style={{ marginTop: '1.25rem', whiteSpace: 'pre-wrap' }}>{person.bio}</p>
         )}
 
-        <a
-          className="btn accent"
-          style={{ marginTop: '0.5rem' }}
-          href={`https://wa.me/?text=${waText}`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Share on WhatsApp
-        </a>
+        <div className="action-bar">
+          <ShareMenu
+            url={window.location.href}
+            title={person.fullName}
+            text={`In loving memory of ${person.fullName}.`}
+          />
+          {canModerate && (
+            <>
+              <Link to={`/deceased/${person.id}/edit`} className="btn secondary">
+                Edit record
+              </Link>
+              <button className="btn danger" disabled={deleting} onClick={onDelete}>
+                {deleting ? 'Deleting...' : 'Delete record'}
+              </button>
+            </>
+          )}
+        </div>
       </div>
+
+      <div className="card">
+        <Reactions deceasedId={person.id} />
+      </div>
+
+      <Condolences deceasedId={person.id} />
 
       {viewerOpen && person.photoUrl && (
         <ImageViewer
@@ -114,7 +147,6 @@ export default function DeceasedDetail() {
           onClose={() => setViewerOpen(false)}
         />
       )}
-
-      <Condolences deceasedId={person.id} />    </div>
+    </div>
   );
 }

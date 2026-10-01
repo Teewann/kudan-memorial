@@ -108,3 +108,31 @@ export const announcements = pgTable('announcements', {
 }, (t) => ({
   expiresIdx: index('announcements_expires_idx').on(t.expiresAt),
 }));
+
+// --- Reactions ---
+// One tap to say "I remember" or "Prayers" on a memorial.
+// A person can only react once per memorial, but can change their reaction.
+// Since reactions are open to anonymous visitors, we identify them by a
+// browser-generated token stored in localStorage, not by user account.
+export const reactions = pgTable('reactions', {
+  id: serial('id').primaryKey(),
+  deceasedId: integer('deceased_id').notNull().references(() => deceased.id),
+  kind: varchar('kind', { length: 20 }).notNull(), // 'remember' or 'pray'
+  visitorToken: varchar('visitor_token', { length: 64 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  deceasedIdx: index('reactions_deceased_idx').on(t.deceasedId),
+  visitorIdx: index('reactions_visitor_idx').on(t.deceasedId, t.visitorToken),
+}));
+
+// --- Views ---
+// One anonymous row per memorial page open. No visitor identity, no IP,
+// no cookie. Just enough to count interest per memorial per day.
+export const views = pgTable('views', {
+  id: serial('id').primaryKey(),
+  deceasedId: integer('deceased_id').notNull().references(() => deceased.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  deceasedIdx: index('views_deceased_idx').on(t.deceasedId),
+  createdIdx: index('views_created_idx').on(t.createdAt),
+}));

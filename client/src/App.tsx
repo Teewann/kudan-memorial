@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, NavLink, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import DeceasedList from './pages/DeceasedList';
 import DeceasedDetail from './pages/DeceasedDetail';
+import EditDeceased from './pages/EditDeceased';
 import AddDeceased from './pages/AddDeceased';
 import Families from './pages/Families';
 import FamilyDetail from './pages/FamilyDetail';
@@ -13,6 +14,8 @@ import Moderation from './pages/Moderation';
 import Announcements from './pages/Announcements';
 import AnnouncementDetail from './pages/AnnouncementDetail';
 import AddAnnouncement from './pages/AddAnnouncement';
+import Analytics from './pages/Analytics';
+import InstallPrompt from './components/InstallPrompt';
 import { isLoggedIn, clearToken } from './lib/api';
 
 export default function App() {
@@ -25,13 +28,67 @@ export default function App() {
   return (
     <div className="layout">
       <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
-        <Link to="/" onClick={closeMenu}>Home</Link>
-        <Link to="/deceased" onClick={closeMenu}>Deceased Register</Link>
-        <Link to="/families" onClick={closeMenu}>Families</Link>
-        <Link to="/announcements" onClick={closeMenu}>Announcements</Link>
-        <Link to="/deceased/new" onClick={closeMenu}>Add a Deceased</Link>
-        <Link to="/families/new" onClick={closeMenu}>Register a Family</Link>
-        {loggedIn && <Link to="/moderation" onClick={closeMenu}>Moderation</Link>}
+        <div className="sidebar-brand">
+          <img src="/mark.jpg" alt="" />
+          <span>Kudan Memorial</span>
+        </div>
+
+        <NavLink to="/" end onClick={closeMenu}
+          className={({ isActive }) => isActive ? 'active' : ''}>
+          Home
+        </NavLink>
+        <NavLink to="/deceased/new" onClick={closeMenu}
+          className={({ isActive }) => isActive ? 'active' : ''}>
+          Add a Deceased
+        </NavLink>
+        <NavLink to="/deceased" end onClick={closeMenu}
+          className={({ isActive }) => isActive ? 'active' : ''}>
+          Deceased Register
+        </NavLink>
+        <NavLink to="/announcements" end onClick={closeMenu}
+          className={({ isActive }) => isActive ? 'active' : ''}>
+          Announcements
+        </NavLink>
+        <NavLink to="/families" end onClick={closeMenu}
+          className={({ isActive }) => isActive ? 'active' : ''}>
+          Families
+        </NavLink>
+        <NavLink to="/families/new" onClick={closeMenu}
+          className={({ isActive }) => isActive ? 'active' : ''}>
+          Register a Family
+        </NavLink>
+        <NavLink to="/stats" onClick={closeMenu}
+          className={({ isActive }) => isActive ? 'active' : ''}>
+          Statistics
+        </NavLink>
+
+        {loggedIn && (
+          <>
+            <NavLink to="/moderation" onClick={closeMenu}
+              className={({ isActive }) => isActive ? 'active' : ''}>
+              Moderation
+            </NavLink>
+            <NavLink to="/announcements/new" onClick={closeMenu}
+              className={({ isActive }) => isActive ? 'active' : ''}>
+              Post Announcement
+            </NavLink>
+          </>
+        )}
+
+        <div className="sidebar-footer">
+          {loggedIn ? (
+            <button
+              className="sidebar-signout"
+              onClick={() => { clearToken(); window.location.href = '/'; }}
+            >
+              Sign out
+            </button>
+          ) : (
+            <NavLink to="/login" onClick={closeMenu} className="sidebar-signout">
+              Log in
+            </NavLink>
+          )}
+        </div>
       </aside>
 
       {menuOpen && <div className="scrim" onClick={closeMenu} />}
@@ -40,15 +97,22 @@ export default function App() {
         <header className="topbar">
           <button
             className="menu-btn"
-            aria-label="Menu"
+            aria-label="Open menu"
             onClick={() => setMenuOpen((v) => !v)}
           >
-            ☰
+            &#9776;
           </button>
-          <Link to="/" className="brand">Kudan Memorial</Link>
+
+          <Link to="/" className="brand">
+            Kudan Memorial
+          </Link>
+
           <div style={{ marginLeft: 'auto' }}>
             {loggedIn ? (
-              <button className="btn secondary" onClick={() => { clearToken(); window.location.href = '/'; }}>
+              <button
+                className="btn secondary"
+                onClick={() => { clearToken(); window.location.href = '/'; }}
+              >
                 Log out
               </button>
             ) : (
@@ -58,22 +122,47 @@ export default function App() {
         </header>
 
         <main className="content" key={location.pathname}>
+          <InstallPrompt />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/deceased" element={<DeceasedList />} />
             <Route path="/deceased/new" element={<AddDeceased />} />
             <Route path="/deceased/:id" element={<DeceasedDetail />} />
+            <Route path="/deceased/:id/edit" element={<EditDeceased />} />
             <Route path="/families" element={<Families />} />
             <Route path="/families/new" element={<AddFamily />} />
             <Route path="/families/:id" element={<FamilyDetail />} />
             <Route path="/announcements" element={<Announcements />} />
             <Route path="/announcements/new" element={<AddAnnouncement />} />
             <Route path="/announcements/:id" element={<AnnouncementDetail />} />
+            <Route path="/stats" element={<Analytics />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/moderation" element={<Moderation />} />
+            <Route path="*" element={
+              <div>
+                <h1>Page not found</h1>
+                <p className="muted">This page does not exist. Go back to <Link to="/">Home</Link>.</p>
+              </div>
+            } />
           </Routes>
         </main>
+
+        <footer style={{
+          borderTop: '1px solid var(--color-border)',
+          padding: '1rem 1.25rem',
+          color: 'var(--color-gray)',
+          fontSize: '0.875rem',
+          display: 'flex',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+        }}>
+          <span>Kudan Memorial, Kudan LGA, Kaduna State</span>
+          <span style={{ marginLeft: 'auto' }}>
+            Entries are reviewed before appearing publicly.
+          </span>
+        </footer>
       </div>
     </div>
   );

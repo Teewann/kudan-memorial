@@ -8,6 +8,9 @@ import { familiesRouter } from './routes/families.js';
 import { moderationRouter } from './routes/moderation.js';
 import { condolencesRouter } from './routes/condolences.js';
 import { announcementsRouter } from './routes/announcements.js';
+import { reactionsRouter } from './routes/reactions.js';
+import { analyticsRouter } from './routes/analytics.js';
+
 const app = express();
 
 app.use(cors({
@@ -26,6 +29,9 @@ app.use('/api/families', familiesRouter);
 app.use('/api/moderation', moderationRouter);
 app.use('/api/condolences', condolencesRouter);
 app.use('/api/announcements', announcementsRouter);
+app.use('/api/reactions', reactionsRouter);
+app.use('/api/analytics', analyticsRouter);
+
 // Always return a real error type, never a bare "Server error" with no
 // context, or debugging becomes guesswork.
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

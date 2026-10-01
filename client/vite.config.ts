@@ -7,23 +7,27 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico'],
+      includeAssets: ['favicon.png', 'apple-touch-icon.png', 'mark.jpg'],
+      // Serve the manifest and service worker in dev too, so the browser
+      // can actually see them and offer install.
+      devOptions: {
+        enabled: true,
+      },
       manifest: {
         name: 'Kudan Memorial',
-        short_name: 'Kudan Memorial',
-        description: 'A community register of the deceased and families of Kudan.',
-        theme_color: '#1e3a5f', // navy, matches --color-primary
+        short_name: 'Kudan',
+        description: 'A lasting record of the people of Kudan, Kudan LGA, Kaduna State.',
+        theme_color: '#1e3a5f',
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',
         icons: [
-          // TODO: replace with real 192/512 (and maskable) icons before launch
           { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
-        // Offline fallback: cached shell loads even with no network.
         navigateFallback: '/index.html',
         runtimeCaching: [
           {
@@ -37,9 +41,6 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      // The API and uploaded photos live on the backend, port 4000.
-      // These two lines make them appear as if they live on the client's
-      // own port, so /uploads/xxx.jpg and /api/... both work in the browser.
       '/uploads': 'http://localhost:4000',
       '/api': 'http://localhost:4000',
     },
