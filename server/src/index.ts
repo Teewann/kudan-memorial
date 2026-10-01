@@ -21,6 +21,14 @@ app.use(cors({
 app.use(express.json({ limit: '1mb' }));
 app.use('/uploads', express.static(path.resolve('uploads')));
 
+// Log every request path in dev, so we can see exactly what the server got.
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, _res, next) => {
+    console.log(`${req.method} ${req.path}`);
+    next();
+  });
+}
+
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
 app.use('/api/auth', authRouter);
@@ -32,8 +40,6 @@ app.use('/api/announcements', announcementsRouter);
 app.use('/api/reactions', reactionsRouter);
 app.use('/api/analytics', analyticsRouter);
 
-// Always return a real error type, never a bare "Server error" with no
-// context, or debugging becomes guesswork.
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
   res.status(err.status ?? 500).json({
