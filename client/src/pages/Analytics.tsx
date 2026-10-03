@@ -23,6 +23,11 @@ interface Summary {
   reactionsBreakdown: Array<{ kind: string; count: number }>;
 }
 
+interface Demographics {
+  bySex: Array<{ label: string; count: number }>;
+  byAge: Array<{ label: string; count: number }>;
+}
+
 interface DeceasedRow {
   id: number;
   fullName: string;
@@ -42,6 +47,7 @@ interface ReportRow extends DeceasedRow {
 type Range = 'today' | 'week' | 'month' | 'year' | 'all' | 'custom';
 
 const CHART_COLORS = ['#1e3a5f', '#14795f', '#7a1f1f', '#b8860b', '#6f4e37', '#c0392b', '#3f6b8a'];
+const AGE_COLORS = ['#c0392b', '#14795f', '#1e3a5f'];
 
 function ageAtDeath(birth: string | null, death: string): string {
   if (!birth) return '';
@@ -67,6 +73,7 @@ const RANGE_LABELS: Record<Range, string> = {
 
 export default function Analytics() {
   const [data, setData] = useState<Summary | null>(null);
+  const [demo, setDemo] = useState<Demographics | null>(null);
   const [error, setError] = useState(false);
 
   const [range, setRange] = useState<Range>('all');
@@ -88,6 +95,10 @@ export default function Analytics() {
     api<Summary>('/api/analytics/summary')
       .then(setData)
       .catch(() => setError(true));
+
+    api<Demographics>('/api/analytics/demographics')
+      .then(setDemo)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -262,21 +273,11 @@ export default function Analytics() {
         </div>
         <div className="filter-field">
           <label>From</label>
-          <input
-            type="date"
-            lang="en-GB"
-            value={fromDate}
-            onChange={(e) => { setFromDate(e.target.value); setPage(1); }}
-          />
+          <input type="date" lang="en-GB" value={fromDate} onChange={(e) => { setFromDate(e.target.value); setPage(1); }} />
         </div>
         <div className="filter-field">
           <label>To</label>
-          <input
-            type="date"
-            lang="en-GB"
-            value={toDate}
-            onChange={(e) => { setToDate(e.target.value); setPage(1); }}
-          />
+          <input type="date" lang="en-GB" value={toDate} onChange={(e) => { setToDate(e.target.value); setPage(1); }} />
         </div>
         <div className="filter-field">
           <label>Ward / Area</label>
@@ -303,15 +304,29 @@ export default function Analytics() {
           {byWard.length === 0 ? (
             <p className="muted">No records yet.</p>
           ) : (
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={340}>
               <PieChart>
-                <Pie data={byWard} dataKey="count" nameKey="ward" cx="50%" cy="50%" outerRadius={90}>
+                <Pie
+                  data={byWard}
+                  dataKey="count"
+                  nameKey="ward"
+                  cx="50%"
+                  cy="45%"
+                  outerRadius={80}
+                  label={false}
+                  labelLine={false}
+                >
                   {byWard.map((_, i) => (
                     <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
-                <Legend />
+                <Legend
+                  layout="horizontal"
+                  verticalAlign="bottom"
+                  align="center"
+                  wrapperStyle={{ fontSize: '0.75rem', paddingTop: '0.5rem', lineHeight: '1.2' }}
+                />
               </PieChart>
             </ResponsiveContainer>
           )}
@@ -322,16 +337,87 @@ export default function Analytics() {
           {reactionData.length === 0 || reactionData.every((r) => r.value === 0) ? (
             <p className="muted">No reactions yet.</p>
           ) : (
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={340}>
               <PieChart>
-                <Pie data={reactionData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={90}>
+                <Pie
+                  data={reactionData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="45%"
+                  innerRadius={55}
+                  outerRadius={85}
+                  label={false}
+                  labelLine={false}
+                >
                   {reactionData.map((_, i) => (
                     <Cell key={i} fill={CHART_COLORS[(i + 2) % CHART_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
-                <Legend />
+                <Legend
+                  layout="horizontal"
+                  verticalAlign="bottom"
+                  align="center"
+                  wrapperStyle={{ fontSize: '0.78rem', paddingTop: '0.5rem' }}
+                />
               </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      <div className="charts-grid" style={{ marginTop: '1.5rem' }}>
+        <div className="chart-card">
+          <h3>By sex</h3>
+          {!demo || demo.bySex.length === 0 ? (
+            <p className="muted">No data yet.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie
+                  data={demo.bySex}
+                  dataKey="count"
+                  nameKey="label"
+                  cx="50%"
+                  cy="45%"
+                  outerRadius={80}
+                  label={false}
+                  labelLine={false}
+                >
+                  {demo.bySex.map((_, i) => (
+                    <Cell key={i} fill={CHART_COLORS[(i + 3) % CHART_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend
+                  layout="horizontal"
+                  verticalAlign="bottom"
+                  align="center"
+                  wrapperStyle={{ fontSize: '0.78rem', paddingTop: '0.5rem' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        <div className="chart-card">
+          <h3>By age group</h3>
+          {!demo || demo.byAge.length === 0 ? (
+            <p className="muted">No data with a date of birth yet.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={demo.byAge}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#dcdcdc" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="count" radius={[3, 3, 0, 0]}>
+                  {demo.byAge.map((_, i) => (
+                    <Cell key={i} fill={AGE_COLORS[i % AGE_COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           )}
         </div>

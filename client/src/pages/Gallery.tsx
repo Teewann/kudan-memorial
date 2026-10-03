@@ -73,7 +73,7 @@ export default function Gallery() {
       {tab === 'memory' && <MemoryTab onOpen={setViewer} />}
       {tab === 'town' && <TownTab onOpen={setViewer} />}
 
-      {viewer && (
+            {viewer && (
         <div className="modal-scrim" onClick={() => setViewer(null)}>
           <img
             src={viewer}
@@ -87,6 +87,69 @@ export default function Gallery() {
               boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
             }}
           />
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'absolute',
+              top: 'calc(1rem + env(safe-area-inset-top, 0px))',
+              right: 16,
+              display: 'flex',
+              gap: 8,
+            }}
+          >
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const res = await fetch(viewer);
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `kudan-photo-${Date.now()}.jpg`;
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  URL.revokeObjectURL(url);
+                } catch {
+                  window.open(viewer, '_blank');
+                }
+              }}
+              aria-label="Download"
+              title="Download this photo"
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                border: 'none',
+                background: 'rgba(255,255,255,0.9)',
+                color: '#14263f',
+                fontSize: 20,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              ↓
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewer(null)}
+              aria-label="Close"
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                border: 'none',
+                background: 'rgba(255,255,255,0.9)',
+                color: '#14263f',
+                fontSize: 24,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              ×
+            </button>
+          </div>
         </div>
       )}
     </div>

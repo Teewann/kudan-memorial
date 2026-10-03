@@ -1463,3 +1463,62 @@ main.content { min-width: 0; }
 }
 .password-toggle:hover { color: var(--color-primary); }
 .password-toggle:focus { outline: 2px solid var(--color-accent); }
+
+/* ================= Chart legend fix ================= */
+.recharts-legend-wrapper {
+  position: relative !important;
+  padding-top: 0.5rem !important;
+}
+.recharts-default-legend {
+  text-align: center !important;
+}
+.recharts-legend-item {
+  display: inline-flex !important;
+  align-items: center;
+  margin-right: 0.75rem !important;
+}
+.recharts-legend-item-text {
+  font-size: 0.78rem !important;
+  white-space: nowrap;
+}
+
+/* Two column chart layout on wide, one column on phone */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+@media (max-width: 720px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ================= Chart legend, wrapped ================= */
+.recharts-legend-wrapper {
+  position: relative !important;
+  padding-top: 0.5rem !important;
+  width: 100% !important;
+}
+.recharts-default-legend {
+  text-align: center !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  gap: 0.25rem 0.75rem;
+  max-width: 100% !important;
+}
+.recharts-legend-item {
+  display: inline-flex !important;
+  align-items: center;
+  margin: 0 !important;
+  white-space: nowrap;
+}
+.recharts-legend-item-text {
+  font-size: 0.72rem !important;
+  color: var(--color-text) !important;
+}
+.recharts-surface {
+  overflow: visible;
+}
