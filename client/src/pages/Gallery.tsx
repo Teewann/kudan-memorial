@@ -106,8 +106,9 @@ export default function Gallery() {
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = url;
-                  a.download = `kudan-photo-${Date.now()}.jpg`;
-                  document.body.appendChild(a);
+                const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+                a.download = `kudan-photo-${Date.now()}.${ext}`;
+                document.body.appendChild(a);
                   a.click();
                   a.remove();
                   URL.revokeObjectURL(url);
