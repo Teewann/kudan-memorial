@@ -15,7 +15,7 @@ interface Announcement {
 }
 
 function longDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
+  return new Date(iso).toLocaleDateString('en-GB', {
     year: 'numeric', month: 'long', day: 'numeric',
   });
 }
@@ -51,6 +51,10 @@ export default function AnnouncementDetail() {
 
   return (
     <div>
+      <button type="button" className="back-btn" onClick={() => navigate(-1)}>
+        ← Back
+      </button>
+
       <div className="breadcrumb">
         <Link to="/announcements">Announcements</Link> / {data.name}
       </div>

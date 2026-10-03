@@ -10,6 +10,8 @@ import { condolencesRouter } from './routes/condolences.js';
 import { announcementsRouter } from './routes/announcements.js';
 import { reactionsRouter } from './routes/reactions.js';
 import { analyticsRouter } from './routes/analytics.js';
+import { usersRouter } from './routes/users.js';
+import { galleryRouter } from './routes/gallery.js';
 
 const app = express();
 
@@ -39,7 +41,8 @@ app.use('/api/condolences', condolencesRouter);
 app.use('/api/announcements', announcementsRouter);
 app.use('/api/reactions', reactionsRouter);
 app.use('/api/analytics', analyticsRouter);
-
+app.use('/api/users', usersRouter);
+app.use('/api/gallery', galleryRouter);
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
   res.status(err.status ?? 500).json({

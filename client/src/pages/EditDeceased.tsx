@@ -21,6 +21,19 @@ interface Person {
   photoUrl: string | null;
 }
 
+function normaliseDate(input: string): string {
+  const s = input.trim();
+  if (!s) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) {
+    const mm = m[1].padStart(2, '0');
+    const dd = m[2].padStart(2, '0');
+    return `${m[3]}-${mm}-${dd}`;
+  }
+  return '';
+}
+
 export default function EditDeceased() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -46,7 +59,6 @@ export default function EditDeceased() {
     setSaving(true);
     setError(null);
 
-    // Empty strings become null so the database gets real NULLs.
     const body: Record<string, unknown> = {
       fullName: person.fullName,
       hausaName: person.hausaName || null,
@@ -65,10 +77,7 @@ export default function EditDeceased() {
     };
 
     try {
-      await api(`/api/deceased/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(body),
-      });
+      await api(`/api/deceased/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
       navigate(`/deceased/${id}`);
     } catch {
       setError('Could not save changes. Are you logged in as a moderator?');
@@ -83,6 +92,10 @@ export default function EditDeceased() {
 
   return (
     <div>
+      <button type="button" className="back-btn" onClick={() => navigate(-1)}>
+        ← Back
+      </button>
+
       <div className="breadcrumb">
         <Link to="/deceased">Deceased Register</Link> /{' '}
         <Link to={`/deceased/${person.id}`}>{person.fullName}</Link> / Edit
@@ -93,7 +106,7 @@ export default function EditDeceased() {
 
       <form onSubmit={onSubmit}>
         <div className="field">
-          <label>Full name *</label>
+          <label>Full name <span className="req">*</span></label>
           <input required value={person.fullName} onChange={(e) => set('fullName', e.target.value)} />
         </div>
 
@@ -104,10 +117,7 @@ export default function EditDeceased() {
 
         <div className="field">
           <label>Sex</label>
-          <select
-            value={person.sex ?? ''}
-            onChange={(e) => set('sex', (e.target.value || null) as Person['sex'])}
-          >
+          <select value={person.sex ?? ''} onChange={(e) => set('sex', (e.target.value || null) as Person['sex'])}>
             <option value="">Not stated</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
@@ -115,26 +125,32 @@ export default function EditDeceased() {
         </div>
 
         <div className="field">
-          <label>Ward *</label>
+          <label>Ward / Area <span className="req">*</span></label>
           <input required value={person.ward} onChange={(e) => set('ward', e.target.value)} />
+        </div>
+
+        <div className="field">
+          <label>Date of death <span className="req">*</span></label>
+          <input
+            required
+            type="date"
+            lang="en-GB"
+            value={person.dateOfDeath}
+            onChange={(e) => set('dateOfDeath', e.target.value)}
+            onBlur={() => {
+              const clean = normaliseDate(person.dateOfDeath);
+              if (clean && clean !== person.dateOfDeath) set('dateOfDeath', clean);
+            }}
+          />
         </div>
 
         <div className="field">
           <label>Date of birth</label>
           <input
             type="date"
+            lang="en-GB"
             value={person.dateOfBirth ?? ''}
             onChange={(e) => set('dateOfBirth', e.target.value || null)}
-          />
-        </div>
-
-        <div className="field">
-          <label>Date of death *</label>
-          <input
-            required
-            type="date"
-            value={person.dateOfDeath}
-            onChange={(e) => set('dateOfDeath', e.target.value)}
           />
         </div>
 
@@ -169,18 +185,12 @@ export default function EditDeceased() {
 
         <div className="field">
           <label>Submitted by name</label>
-          <input
-            value={person.submittedByName}
-            onChange={(e) => set('submittedByName', e.target.value)}
-          />
+          <input value={person.submittedByName} onChange={(e) => set('submittedByName', e.target.value)} />
         </div>
 
         <div className="field">
           <label>Submitted by phone</label>
-          <input
-            value={person.submittedByPhone}
-            onChange={(e) => set('submittedByPhone', e.target.value)}
-          />
+          <input value={person.submittedByPhone} onChange={(e) => set('submittedByPhone', e.target.value)} />
         </div>
 
         {error && <div className="field error">{error}</div>}

@@ -14,6 +14,40 @@ interface Person {
 }
 interface Family { id: number; name: string; }
 
+function ageAtDeath(birth: string | null, death: string): string | null {
+  if (!birth) return null;
+  const b = new Date(birth);
+  const d = new Date(death);
+  if (isNaN(b.getTime()) || isNaN(d.getTime())) return null;
+
+  let years = d.getFullYear() - b.getFullYear();
+  let months = d.getMonth() - b.getMonth();
+  let days = d.getDate() - b.getDate();
+
+  if (days < 0) {
+    months -= 1;
+    const prevMonth = new Date(d.getFullYear(), d.getMonth(), 0);
+    days += prevMonth.getDate();
+  }
+  if (months < 0) {
+    years -= 1;
+    months += 12;
+  }
+  if (years < 0) return null;
+
+  const parts: string[] = [];
+  if (years > 0) parts.push(`${years} ${years === 1 ? 'year' : 'years'}`);
+  if (months > 0) parts.push(`${months} ${months === 1 ? 'month' : 'months'}`);
+  if (parts.length === 0 || days > 0) parts.push(`${days} ${days === 1 ? 'day' : 'days'}`);
+  return parts.join(' ');
+}
+
+function longDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', {
+    year: 'numeric', month: 'long', day: 'numeric',
+  });
+}
+
 export default function DeceasedDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -36,6 +70,7 @@ export default function DeceasedDetail() {
   if (!data) return <div className="skeleton" />;
 
   const { person, family } = data;
+  const age = ageAtDeath(person.dateOfBirth, person.dateOfDeath);
 
   async function onDelete() {
     if (!confirm(`Delete the record for ${person.fullName}? This cannot be undone.`)) return;
@@ -51,6 +86,10 @@ export default function DeceasedDetail() {
 
   return (
     <div>
+      <button type="button" className="back-btn" onClick={() => navigate(-1)}>
+        ← Back
+      </button>
+
       <div className="breadcrumb">
         <Link to="/deceased">Deceased Register</Link> / {person.fullName}
       </div>
@@ -77,12 +116,18 @@ export default function DeceasedDetail() {
         <div className="detail-block">
           <div className="detail-row">
             <span className="label">Date of death</span>
-            <span>{person.dateOfDeath}</span>
+            <span>{longDate(person.dateOfDeath)}</span>
           </div>
           {person.dateOfBirth && (
             <div className="detail-row">
               <span className="label">Date of birth</span>
-              <span>{person.dateOfBirth}</span>
+              <span>{longDate(person.dateOfBirth)}</span>
+            </div>
+          )}
+          {age && (
+            <div className="detail-row">
+              <span className="label">Lived for</span>
+              <span>{age}</span>
             </div>
           )}
           {person.parentName && (

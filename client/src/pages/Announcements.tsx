@@ -31,16 +31,9 @@ export default function Announcements() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-        <h1 style={{ margin: 0 }}>Announcements</h1>
-        {loggedIn && (
-          <Link to="/announcements/new" className="btn" style={{ marginLeft: 'auto' }}>
-            Post announcement
-          </Link>
-        )}
-      </div>
-
-      {loading && <div className="skeleton" />}
+      <h1>Announcements</h1>
+      
+            {loading && <div className="skeleton" />}
       {error && <p className="error">{error}</p>}
       {!loading && !error && items.length === 0 && (
         <p className="muted">No announcements right now.</p>

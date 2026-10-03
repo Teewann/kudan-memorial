@@ -91,7 +91,7 @@ export const condolences = pgTable('condolences', {
   message: text('message').notNull(),
   status: statusEnum('status').notNull().default('pending'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (t) => ({
+  userId: integer('user_id').references(() => users.id),}, (t) => ({
   deceasedIdx: index('condolences_deceased_idx').on(t.deceasedId),
 }));
 
@@ -136,3 +136,29 @@ export const views = pgTable('views', {
   deceasedIdx: index('views_deceased_idx').on(t.deceasedId),
   createdIdx: index('views_created_idx').on(t.createdAt),
 }));
+
+export const townPhotos = pgTable('town_photos', {
+  id: serial('id').primaryKey(),
+  title: varchar('title', { length: 160 }).notNull(),
+  description: text('description'),
+  photoUrl: text('photo_url').notNull(),
+  category: varchar('category', { length: 60 }),
+  uploadedByUserId: integer('uploaded_by_user_id').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  categoryIdx: index('town_photos_category_idx').on(t.category),
+}));
+
+// --- Comment reports ---
+// One row per report. No personal data. A report flags a condolence for
+// moderator review. The condolence itself is never touched until a
+// moderator decides.
+export const commentReports = pgTable('comment_reports', {
+  id: serial('id').primaryKey(),
+  condolenceId: integer('condolence_id').notNull().references(() => condolences.id),
+  reason: varchar('reason', { length: 200 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  condolenceIdx: index('comment_reports_condolence_idx').on(t.condolenceId),
+}));
+

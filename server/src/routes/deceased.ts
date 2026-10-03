@@ -64,10 +64,18 @@ deceasedRouter.get('/feed', async (req, res) => {
   const page = Math.max(1, Number(req.query.page) || 1);
   const limit = Math.min(20, Number(req.query.limit) || 10);
   const ward = typeof req.query.ward === 'string' ? req.query.ward : '';
+  const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
 
-  const baseWhere = ward
-    ? and(eq(deceased.status, 'verified'), eq(deceased.ward, ward))
-    : eq(deceased.status, 'verified');
+  const conditions = [eq(deceased.status, 'verified')];
+  if (ward) conditions.push(eq(deceased.ward, ward));
+  if (q) {
+    conditions.push(sql`(
+      ${deceased.fullName} ilike ${'%' + q + '%'}
+      or coalesce(${deceased.hausaName}, '') ilike ${'%' + q + '%'}
+    )`);
+  }
+
+  const baseWhere = and(...conditions);
 
   const rows = await db.select({
     id: deceased.id,
@@ -188,6 +196,38 @@ deceasedRouter.get('/on-this-day', async (_req, res) => {
     .limit(20);
 
   res.json({ items: rows });
+});
+
+// Check for possible duplicate entries before submission.
+// Fuzzy match on name, exact match on date of death.
+// Public. Read-only. Does not write anything.
+deceasedRouter.get('/check-duplicate', async (req, res) => {
+  const fullName = String(req.query.fullName || '').trim();
+  const dateOfDeath = String(req.query.dateOfDeath || '').trim();
+
+  if (fullName.length < 3 || !dateOfDeath) {
+    return res.json({ matches: [] });
+  }
+
+  // Postgres trigram similarity. Requires the pg_trgm extension.
+  // We use it as a soft filter, then also require the same date of death.
+  const rows = await db.select({
+    id: deceased.id,
+    fullName: deceased.fullName,
+    hausaName: deceased.hausaName,
+    ward: deceased.ward,
+    dateOfDeath: deceased.dateOfDeath,
+    similarity: sql<number>`similarity(${deceased.fullName}, ${fullName})`,
+  }).from(deceased)
+    .where(and(
+      eq(deceased.status, 'verified'),
+      eq(deceased.dateOfDeath, dateOfDeath),
+      sql`similarity(${deceased.fullName}, ${fullName}) > 0.3`,
+    ))
+    .orderBy(desc(sql`similarity(${deceased.fullName}, ${fullName})`))
+    .limit(5);
+
+  res.json({ matches: rows });
 });
 
 deceasedRouter.get('/:id', async (req, res) => {

@@ -8,12 +8,10 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.png', 'apple-touch-icon.png', 'mark.jpg'],
-      // Serve the manifest and service worker in dev too, so the browser
-      // can actually see them and offer install.
       devOptions: {
-        enabled: true,
+        enabled: false,
       },
-      manifest: {
+            manifest: {
         name: 'Kudan Memorial',
         short_name: 'Kudan',
         description: 'A lasting record of the people of Kudan, Kudan LGA, Kaduna State.',
@@ -28,6 +26,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         navigateFallback: '/index.html',
         runtimeCaching: [
           {

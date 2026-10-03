@@ -4,7 +4,10 @@ import { api, setToken } from '../lib/api';
 
 export default function Register() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', phone: '', email: '', password: '' });
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,11 +17,24 @@ export default function Register() {
     setSaving(true);
     setError(null);
     try {
-      const res = await api<{ token: string }>('/api/auth/register', { method: 'POST', body: JSON.stringify(form) });
+      const body: Record<string, string> = { name, phone, password };
+      if (email.trim()) body.email = email.trim();
+
+      const res = await api<{ token: string }>('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
       setToken(res.token);
-      navigate('/families/new');
-    } catch {
-      setError('Could not create your account. That phone number may already be registered.');
+      navigate('/');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.includes('phone_taken')) {
+        setError('That phone number is already registered. Try logging in instead.');
+      } else if (msg.includes('invalid_input')) {
+        setError('Please check your name, phone, and password. Password must be at least 4 characters.');
+      } else {
+        setError('Could not create your account. Please try again.');
+      }
     } finally {
       setSaving(false);
     }
@@ -27,14 +43,53 @@ export default function Register() {
   return (
     <div>
       <h1>Create an account</h1>
-      <p>You only need this to register a family. Your phone number and a password are all that is required.</p>
-      <form onSubmit={onSubmit}>
-        <div className="field"><label>Full name *</label><input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-        <div className="field"><label>Phone number *</label><input required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-        <div className="field"><label>Email (optional)</label><input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-        <div className="field"><label>Password *</label><input required type="password" minLength={4} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></div>
+      <p className="muted">
+        You only need this to register a family. Your phone number and a password are all that is required.
+      </p>
+      <form onSubmit={onSubmit} autoComplete="off">
+        <div className="field">
+          <label>Full name <span className="req">*</span></label>
+          <input
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoComplete="off"
+          />
+        </div>
+        <div className="field">
+          <label>Phone number <span className="req">*</span></label>
+          <input
+            required
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            autoComplete="off"
+          />
+        </div>
+        <div className="field">
+          <label>Email (optional)</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="off"
+          />
+        </div>
+        <div className="field">
+          <label>Password <span className="req">*</span></label>
+          <input
+            required
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+            minLength={4}
+          />
+        </div>
         {error && <div className="field error">{error}</div>}
-        <button className="btn" type="submit" disabled={saving}>{saving ? 'Creating, please wait' : 'Create account'}</button>
+        <button className="btn" type="submit" disabled={saving}>
+          {saving ? 'Creating account...' : 'Create account'}
+        </button>
       </form>
       <p>Already have an account? <Link to="/login">Log in</Link></p>
     </div>

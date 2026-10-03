@@ -68,9 +68,11 @@ export default function AddAnnouncement() {
           <input type="number" min={1} max={365} value={daysVisible} onChange={(e) => setDaysVisible(e.target.value)} />
         </div>
         {error && <div className="field error">{error}</div>}
-        <button className="btn" type="submit" disabled={saving}>
-          {saving ? 'Posting...' : 'Post announcement'}
-        </button>
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+          <button className="btn" type="submit" disabled={saving}>
+            {saving ? 'Posting...' : 'Post announcement'}
+          </button>
+        </div>
       </form>
     </div>
   );

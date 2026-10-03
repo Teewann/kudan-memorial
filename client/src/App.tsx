@@ -1,29 +1,33 @@
 import { useState } from 'react';
 import { Routes, Route, Link, NavLink, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
-import DeceasedList from './pages/DeceasedList';
+import DeceasedPage from './pages/DeceasedPage';
 import DeceasedDetail from './pages/DeceasedDetail';
 import EditDeceased from './pages/EditDeceased';
-import AddDeceased from './pages/AddDeceased';
-import Families from './pages/Families';
+import FamiliesPage from './pages/FamiliesPage';
 import FamilyDetail from './pages/FamilyDetail';
-import AddFamily from './pages/AddFamily';
+import AnnouncementsPage from './pages/AnnouncementsPage';
+import AnnouncementDetail from './pages/AnnouncementDetail';
+import Gallery from './pages/Gallery';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Moderation from './pages/Moderation';
-import Announcements from './pages/Announcements';
-import AnnouncementDetail from './pages/AnnouncementDetail';
-import AddAnnouncement from './pages/AddAnnouncement';
-import Analytics from './pages/Analytics';
 import InstallPrompt from './components/InstallPrompt';
+import ConfirmDialog from './components/ConfirmDialog';
 import { isLoggedIn, clearToken } from './lib/api';
 
 export default function App() {
   const loggedIn = isLoggedIn();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showLogout, setShowLogout] = useState(false);
   const location = useLocation();
 
   function closeMenu() { setMenuOpen(false); }
+
+  function doLogout() {
+    clearToken();
+    window.location.href = '/';
+  }
 
   return (
     <div className="layout">
@@ -37,49 +41,36 @@ export default function App() {
           className={({ isActive }) => isActive ? 'active' : ''}>
           Home
         </NavLink>
-        <NavLink to="/deceased/new" onClick={closeMenu}
-          className={({ isActive }) => isActive ? 'active' : ''}>
-          Add a Deceased
-        </NavLink>
-        <NavLink to="/deceased" end onClick={closeMenu}
+        <NavLink to="/deceased" onClick={closeMenu}
           className={({ isActive }) => isActive ? 'active' : ''}>
           Deceased Register
         </NavLink>
-        <NavLink to="/announcements" end onClick={closeMenu}
-          className={({ isActive }) => isActive ? 'active' : ''}>
-          Announcements
-        </NavLink>
-        <NavLink to="/families" end onClick={closeMenu}
+        <NavLink to="/families" onClick={closeMenu}
           className={({ isActive }) => isActive ? 'active' : ''}>
           Families
         </NavLink>
-        <NavLink to="/families/new" onClick={closeMenu}
+        <NavLink to="/announcements" onClick={closeMenu}
           className={({ isActive }) => isActive ? 'active' : ''}>
-          Register a Family
+          Announcements
         </NavLink>
-        <NavLink to="/stats" onClick={closeMenu}
+        <NavLink to="/gallery" onClick={closeMenu}
           className={({ isActive }) => isActive ? 'active' : ''}>
-          Statistics
+          Gallery
         </NavLink>
 
         {loggedIn && (
-          <>
-            <NavLink to="/moderation" onClick={closeMenu}
-              className={({ isActive }) => isActive ? 'active' : ''}>
-              Moderation
-            </NavLink>
-            <NavLink to="/announcements/new" onClick={closeMenu}
-              className={({ isActive }) => isActive ? 'active' : ''}>
-              Post Announcement
-            </NavLink>
-          </>
+          <NavLink to="/moderation" onClick={closeMenu}
+            className={({ isActive }) => isActive ? 'active' : ''}>
+            Moderation
+          </NavLink>
         )}
 
         <div className="sidebar-footer">
           {loggedIn ? (
             <button
+              type="button"
               className="sidebar-signout"
-              onClick={() => { clearToken(); window.location.href = '/'; }}
+              onClick={() => setShowLogout(true)}
             >
               Sign out
             </button>
@@ -96,22 +87,22 @@ export default function App() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <header className="topbar">
           <button
+            type="button"
             className="menu-btn"
-            aria-label="Open menu"
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
             onClick={() => setMenuOpen((v) => !v)}
           >
-            &#9776;
+            {menuOpen ? '\u2715' : '\u2630'}
           </button>
 
-          <Link to="/" className="brand">
-            Kudan Memorial
-          </Link>
+          <Link to="/" className="brand">Kudan Memorial</Link>
 
           <div style={{ marginLeft: 'auto' }}>
             {loggedIn ? (
               <button
+                type="button"
                 className="btn secondary"
-                onClick={() => { clearToken(); window.location.href = '/'; }}
+                onClick={() => setShowLogout(true)}
               >
                 Log out
               </button>
@@ -125,17 +116,23 @@ export default function App() {
           <InstallPrompt />
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/deceased" element={<DeceasedList />} />
-            <Route path="/deceased/new" element={<AddDeceased />} />
+            <Route path="/stats" element={<Home />} />
+
+            <Route path="/deceased" element={<DeceasedPage />} />
+            <Route path="/deceased/new" element={<DeceasedPage />} />
             <Route path="/deceased/:id" element={<DeceasedDetail />} />
             <Route path="/deceased/:id/edit" element={<EditDeceased />} />
-            <Route path="/families" element={<Families />} />
-            <Route path="/families/new" element={<AddFamily />} />
+
+            <Route path="/families" element={<FamiliesPage />} />
+            <Route path="/families/new" element={<FamiliesPage />} />
             <Route path="/families/:id" element={<FamilyDetail />} />
-            <Route path="/announcements" element={<Announcements />} />
-            <Route path="/announcements/new" element={<AddAnnouncement />} />
+
+            <Route path="/announcements" element={<AnnouncementsPage />} />
+            <Route path="/announcements/new" element={<AnnouncementsPage />} />
             <Route path="/announcements/:id" element={<AnnouncementDetail />} />
-            <Route path="/stats" element={<Analytics />} />
+
+            <Route path="/gallery" element={<Gallery />} />
+
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/moderation" element={<Moderation />} />
@@ -160,10 +157,23 @@ export default function App() {
         }}>
           <span>Kudan Memorial, Kudan LGA, Kaduna State</span>
           <span style={{ marginLeft: 'auto' }}>
-            Entries are reviewed before appearing publicly.
+            Developed by Yakubu Ibrahim (T 1)  08135956426 <a href="https://web.facebook.com/Teewannn/" target="_blank" rel="noopener noreferrer">
+              Visit my website
+            </a>
           </span>
         </footer>
       </div>
+
+      <ConfirmDialog
+        open={showLogout}
+        title="Log out?"
+        message="You will need to log in again with your phone and password."
+        confirmLabel="Log out"
+        cancelLabel="Cancel"
+        danger
+        onConfirm={doLogout}
+        onCancel={() => setShowLogout(false)}
+      />
     </div>
   );
 }

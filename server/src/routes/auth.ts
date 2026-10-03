@@ -9,14 +9,13 @@ import { requireAuth, type AuthedRequest } from '../middleware/auth.js';
 
 export const authRouter = Router();
 
-// Only needed to register a family. Phone + password only — no username,
-// no email required to sign up or log in (email is optional, kept for
-// possible future use and nothing else).
+// Only needed to register a family. Phone + password only.
+// Email is optional and may be sent as an empty string from the form.
 const registerSchema = z.object({
   name: z.string().min(2).max(120),
   phone: z.string().min(6).max(40),
-  email: z.string().email().optional(),
-  password: z.string().min(4), // kept short on purpose — simple passwords like "1234" are fine here
+  email: z.union([z.string().email(), z.literal('')]).optional(),
+  password: z.string().min(4),
 });
 
 authRouter.post('/register', async (req, res) => {
@@ -30,7 +29,14 @@ authRouter.post('/register', async (req, res) => {
   if (existing.length > 0) return res.status(409).json({ error: 'phone_taken' });
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const [user] = await db.insert(users).values({ name, phone, email, passwordHash }).returning({
+  const cleanEmail = email && email.length > 0 ? email : undefined;
+
+  const [user] = await db.insert(users).values({
+    name,
+    phone,
+    email: cleanEmail,
+    passwordHash,
+  }).returning({
     id: users.id, name: users.name, phone: users.phone, role: users.role,
   });
 
@@ -57,8 +63,6 @@ authRouter.post('/login', async (req, res) => {
   });
 });
 
-// One call returns everything the header needs — never four separate calls
-// for name, role, notifications, etc.
 authRouter.get('/me', requireAuth, async (req: AuthedRequest, res) => {
   const [user] = await db.select({
     id: users.id, name: users.name, phone: users.phone, role: users.role,

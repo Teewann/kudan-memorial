@@ -1,5 +1,5 @@
 import { useEffect, useState, FormEvent } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api, isLoggedIn } from '../lib/api';
 
 interface Family {
@@ -14,8 +14,15 @@ interface DeceasedRow {
   id: number; fullName: string; dateOfDeath: string; photoUrl: string | null;
 }
 
+function longDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', {
+    year: 'numeric', month: 'long', day: 'numeric',
+  });
+}
+
 export default function FamilyDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [data, setData] = useState<{
     family: Family; members: Member[]; deceasedMembers: DeceasedRow[];
   } | null>(null);
@@ -53,6 +60,10 @@ export default function FamilyDetail() {
 
   return (
     <div>
+      <button type="button" className="back-btn" onClick={() => navigate(-1)}>
+        ← Back
+      </button>
+
       <div className="breadcrumb">
         <Link to="/families">Families</Link> / {family.name}
       </div>
@@ -125,13 +136,13 @@ export default function FamilyDetail() {
             >
               <span style={{ fontWeight: 600 }}>{d.fullName}</span>
               <span className="muted" style={{ marginLeft: 'auto' }}>
-                died {d.dateOfDeath}
+                died {longDate(d.dateOfDeath)}
               </span>
             </Link>
           ))
         )}
         <p className="muted" style={{ marginTop: 12, fontSize: '0.9rem' }}>
-          To add a deceased member, register them from the Add a Deceased page
+          To add a deceased member, register them from the Deceased Register page
           and choose this family in the form.
         </p>
       </div>
@@ -177,7 +188,7 @@ function AddMemberForm({
   return (
     <form onSubmit={onSubmit} style={{ marginTop: 12, marginBottom: 12 }}>
       <div className="field">
-        <label>Full name *</label>
+        <label>Full name <span className="req">*</span></label>
         <input required value={name} onChange={(e) => setName(e.target.value)} />
       </div>
       <div className="field">
