@@ -280,7 +280,13 @@ deceasedRouter.post('/', submitLimiter, upload.single('photo'), async (req, res)
       const ext = req.file.originalname.split('.').pop() || 'jpg';
       const key = `deceased/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const result = await bucket.put(key, req.file.buffer);
-      photoUrl = result.url ?? null;
+      const rawUrl = result.url ?? null;
+      photoUrl = rawUrl
+        ? rawUrl.replace(
+            'https://b9fe51163ed3.blob.upstash.io',
+            'https://kudan-photos.ibrahimyakubut80.workers.dev/photo'
+          )
+        : null;
     } catch (err) {
       console.error('Blob upload failed', err);
       return res.status(500).json({ error: 'photo_upload_failed' });
