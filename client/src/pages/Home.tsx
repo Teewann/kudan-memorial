@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { api } from '../lib/api';
 import Reactions from '../components/Reactions';
@@ -9,6 +8,7 @@ import Tabs from '../components/Tabs';
 import Analytics from './Analytics';
 import FeedComments from '../components/FeedComments';
 import PostMenu from '../components/PostMenu';
+import { useEffect, useRef, useState } from 'react';
 
 interface FeedItem {
   id: number;
@@ -97,12 +97,35 @@ export default function Home() {
   const [q, setQ] = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
 
-  useEffect(() => {
-    api<Stats>('/api/deceased/stats').then(setStats).catch(() => {});
-  }, []);
+    const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (isStats) return;
+    if (!hasMore) return;
+    if (loading) return;
+
+    const node = sentinelRef.current;
+    if (!node) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setPage((p) => p + 1);
+        }
+      },
+      { rootMargin: '600px' } // start fetching 600px before the end
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasMore, loading, isStats]);
+
+
+    useEffect(() => {
+    if (isStats) return;
+    if (page === 1 && items.length > 0 && !debouncedQ) return;
+
+    let cancelled = false;
     setLoading(true);
     setError(null);
     const params = new URLSearchParams({ page: String(page), limit: '10' });
@@ -110,15 +133,66 @@ export default function Home() {
 
     api<{ items: FeedItem[]; hasMore: boolean }>(`/api/deceased/feed?${params.toString()}`)
       .then((r) => {
+        if (cancelled) return;
         setItems((prev) => (page === 1 ? r.items : [...prev, ...r.items]));
         setHasMore(r.hasMore);
       })
-      .catch(() => setError('Could not load the feed.'))
-      .finally(() => setLoading(false));
-  }, [page, isStats, debouncedQ]);
+      .catch(() => {
+        if (!cancelled) setError('Could not load the feed.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+    }, [page, isStats, debouncedQ]);
+
+    // Restore feed state when coming back to Home.
+  useEffect(() => {
+    const saved = sessionStorage.getItem('kudan_feed_state');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && Array.isArray(parsed.items) && parsed.items.length > 0) {
+          setItems(parsed.items);
+          setPage(parsed.page);
+          setHasMore(parsed.hasMore);
+          // Scroll to the position saved earlier.
+          const scrollY = sessionStorage.getItem('kudan_feed_scroll');
+          if (scrollY) {
+            setTimeout(() => window.scrollTo(0, Number(scrollY)), 0);
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
+  // Save feed state on every change.
+  useEffect(() => {
+    if (items.length > 0) {
+      sessionStorage.setItem('kudan_feed_state', JSON.stringify({
+        items, page, hasMore,
+      }));
+    }
+  }, [items, page, hasMore]);
+
+  // Save scroll position on unmount.
+  useEffect(() => {
+    return () => {
+      sessionStorage.setItem('kudan_feed_scroll', String(window.scrollY));
+    };
+  }, []);
 
   useEffect(() => {
+    api<Stats>('/api/deceased/stats').then(setStats).catch(() => {});
+  }, []);
+
+    useEffect(() => {
     const t = setTimeout(() => {
+      sessionStorage.removeItem('kudan_feed_state');
+      sessionStorage.removeItem('kudan_feed_scroll');
       setDebouncedQ(q.trim());
       setPage(1);
     }, 250);
@@ -269,12 +343,15 @@ export default function Home() {
               );
             })}
 
-            {loading && (<><div className="skeleton" /><div className="skeleton" /></>)}
+                        {loading && (<><div className="skeleton" /><div className="skeleton" /></>)}
 
-            {hasMore && !loading && (
-              <div className="pagination">
-                <button className="btn" onClick={() => setPage((p) => p + 1)}>Load more</button>
-              </div>
+            {/* Invisible sentinel, triggers the next page when scrolled near */}
+            {hasMore && <div ref={sentinelRef} style={{ height: 1 }} />}
+
+            {!hasMore && items.length > 0 && (
+              <p className="muted" style={{ textAlign: 'center', marginTop: '1rem' }}>
+                You have reached the end.
+              </p>
             )}
           </div>
 

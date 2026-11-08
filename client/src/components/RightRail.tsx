@@ -73,7 +73,7 @@ export default function RightRail() {
               {a.burialPlace && (
                 <div className="rail-item-meta">
                   {a.burialPlace}
-                  {a.burialTime ? ` \u00b7 ${a.burialTime}` : ''}
+                  {a.burialTime ? ` . ${a.burialTime}` : ''}
                 </div>
               )}
             </Link>
@@ -100,7 +100,7 @@ export default function RightRail() {
             <Link key={p.id} to={`/deceased/${p.id}`} className="rail-item">
               <div className="rail-item-title">{p.fullName}</div>
               <div className="rail-item-meta">
-                {p.ward} \u00b7 {p.count} {p.count === 1 ? 'view' : 'views'}
+                {p.ward} . {p.count} {p.count === 1 ? 'view' : 'views'}
               </div>
             </Link>
           ))}
