@@ -97,41 +97,77 @@ export default function Home() {
   const [q, setQ] = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
 
-    const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const restoredRef = useRef(false);
 
+  // Restore feed state and scroll to the post the user was reading.
   useEffect(() => {
-    if (isStats) return;
-    if (!hasMore) return;
-    if (loading) return;
+    if (restoredRef.current) return;
+    restoredRef.current = true;
 
-    const node = sentinelRef.current;
-    if (!node) return;
+    const saved = sessionStorage.getItem('kudan_feed_state');
+    if (!saved) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setPage((p) => p + 1);
-        }
-      },
-      { rootMargin: '600px' } // start fetching 600px before the end
-    );
+    try {
+      const parsed = JSON.parse(saved);
+      if (!parsed || !Array.isArray(parsed.items) || parsed.items.length === 0) return;
 
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [hasMore, loading, isStats]);
+      setItems(parsed.items);
+      setPage(parsed.page);
+      setHasMore(parsed.hasMore);
 
-    useEffect(() => {
-    const cameFromMemorial = sessionStorage.getItem('kudan_from_memorial');
-    sessionStorage.removeItem('kudan_from_memorial');
-    if (!cameFromMemorial) {
-      sessionStorage.removeItem('kudan_feed_state');
-      sessionStorage.removeItem('kudan_feed_scroll');
-      return;
+      const postId = sessionStorage.getItem('kudan_feed_last_post');
+      if (postId) {
+        // Wait for the items to be in the DOM.
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const el = document.getElementById(`post-${postId}`);
+            if (el) {
+              const top = el.getBoundingClientRect().top + window.scrollY - 80;
+              window.scrollTo(0, top);
+            }
+          });
+        });
+      }
+    } catch {
+      // ignore
     }
-    // ... existing restore logic
   }, []);
 
-    useEffect(() => {
+  // Track which post is at the top of the viewport.
+  useEffect(() => {
+    function onScroll() {
+      const posts = document.querySelectorAll<HTMLElement>('[data-post-id]');
+      if (posts.length === 0) return;
+      for (const el of posts) {
+        const rect = el.getBoundingClientRect();
+        if (rect.bottom > 100) {
+          const pid = el.dataset.postId;
+          if (pid) sessionStorage.setItem('kudan_feed_last_post', pid);
+          break;
+        }
+      }
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Save feed state on every change.
+  useEffect(() => {
+    if (items.length > 0) {
+      sessionStorage.setItem('kudan_feed_state', JSON.stringify({
+        items, page, hasMore,
+      }));
+    }
+  }, [items, page, hasMore]);
+
+  // Load stats once.
+  useEffect(() => {
+    api<Stats>('/api/deceased/stats').then(setStats).catch(() => {});
+  }, []);
+
+  // Load the feed.
+  useEffect(() => {
     if (isStats) return;
     if (page === 1 && items.length > 0 && !debouncedQ) return;
 
@@ -155,65 +191,38 @@ export default function Home() {
       });
 
     return () => { cancelled = true; };
-    }, [page, isStats, debouncedQ]);
+  }, [page, isStats, debouncedQ]);
 
-    // Restore feed state when coming back to Home.
+  // Debounced search.
   useEffect(() => {
-    const saved = sessionStorage.getItem('kudan_feed_state');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed && Array.isArray(parsed.items) && parsed.items.length > 0) {
-          setItems(parsed.items);
-          setPage(parsed.page);
-          setHasMore(parsed.hasMore);
-          // Scroll to the position saved earlier.
-                    const scrollY = sessionStorage.getItem('kudan_feed_scroll');
-          if (scrollY) {
-            // Two rAFs: first lets React paint the restored items,
-            // second lets the browser measure their heights before scrolling.
-            requestAnimationFrame(() => {
-              requestAnimationFrame(() => {
-                window.scrollTo(0, Number(scrollY));
-              });
-            });
-          }
-        }
-      } catch {
-        // ignore
-      }
-    }
-  }, []);
-
-  // Save feed state on every change.
-  useEffect(() => {
-    if (items.length > 0) {
-      sessionStorage.setItem('kudan_feed_state', JSON.stringify({
-        items, page, hasMore,
-      }));
-    }
-  }, [items, page, hasMore]);
-
-  // Save scroll position on unmount.
-  useEffect(() => {
-    return () => {
-      sessionStorage.setItem('kudan_feed_scroll', String(window.scrollY));
-    };
-  }, []);
-
-  useEffect(() => {
-    api<Stats>('/api/deceased/stats').then(setStats).catch(() => {});
-  }, []);
-
-    useEffect(() => {
     const t = setTimeout(() => {
       sessionStorage.removeItem('kudan_feed_state');
-      sessionStorage.removeItem('kudan_feed_scroll');
+      sessionStorage.removeItem('kudan_feed_last_post');
       setDebouncedQ(q.trim());
       setPage(1);
     }, 250);
     return () => clearTimeout(t);
   }, [q]);
+
+  // Infinite scroll sentinel.
+  useEffect(() => {
+    if (isStats) return;
+    if (!hasMore) return;
+    if (loading) return;
+
+    const node = sentinelRef.current;
+    if (!node) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) setPage((p) => p + 1);
+      },
+      { rootMargin: '600px' }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasMore, loading, isStats]);
 
   return (
     <div>
@@ -290,7 +299,12 @@ export default function Home() {
             {items.map((p) => {
               const age = ageAtDeath(p.dateOfBirth, p.dateOfDeath);
               return (
-                <article key={p.id} className="post">
+                <article
+                  key={p.id}
+                  id={`post-${p.id}`}
+                  data-post-id={p.id}
+                  className="post"
+                >
                   <div className="post-author">
                     <div className="post-avatar">
                       {p.photoUrl ? (
@@ -359,9 +373,8 @@ export default function Home() {
               );
             })}
 
-                        {loading && (<><div className="skeleton" /><div className="skeleton" /></>)}
+            {loading && (<><div className="skeleton" /><div className="skeleton" /></>)}
 
-            {/* Invisible sentinel, triggers the next page when scrolled near */}
             {hasMore && <div ref={sentinelRef} style={{ height: 1 }} />}
 
             {!hasMore && items.length > 0 && (
