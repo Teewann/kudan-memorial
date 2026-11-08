@@ -120,6 +120,16 @@ export default function Home() {
     return () => observer.disconnect();
   }, [hasMore, loading, isStats]);
 
+    useEffect(() => {
+    const cameFromMemorial = sessionStorage.getItem('kudan_from_memorial');
+    sessionStorage.removeItem('kudan_from_memorial');
+    if (!cameFromMemorial) {
+      sessionStorage.removeItem('kudan_feed_state');
+      sessionStorage.removeItem('kudan_feed_scroll');
+      return;
+    }
+    // ... existing restore logic
+  }, []);
 
     useEffect(() => {
     if (isStats) return;
@@ -158,9 +168,15 @@ export default function Home() {
           setPage(parsed.page);
           setHasMore(parsed.hasMore);
           // Scroll to the position saved earlier.
-          const scrollY = sessionStorage.getItem('kudan_feed_scroll');
+                    const scrollY = sessionStorage.getItem('kudan_feed_scroll');
           if (scrollY) {
-            setTimeout(() => window.scrollTo(0, Number(scrollY)), 0);
+            // Two rAFs: first lets React paint the restored items,
+            // second lets the browser measure their heights before scrolling.
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                window.scrollTo(0, Number(scrollY));
+              });
+            });
           }
         }
       } catch {

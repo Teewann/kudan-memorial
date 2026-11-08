@@ -112,7 +112,7 @@ export default function App() {
           </div>
         </header>
 
-        <main className="content" key={location.pathname}>
+                <main className="content">
           <InstallPrompt />
           <Routes>
             <Route path="/" element={<Home />} />

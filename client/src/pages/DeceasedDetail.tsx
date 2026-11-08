@@ -86,7 +86,14 @@ export default function DeceasedDetail() {
 
   return (
     <div>
-      <button type="button" className="back-btn" onClick={() => navigate(-1)}>
+            <button
+        type="button"
+        className="back-btn"
+        onClick={() => {
+          sessionStorage.setItem('kudan_back_to_feed', '1');
+          navigate(-1);
+        }}
+      >
         ← Back
       </button>
 
